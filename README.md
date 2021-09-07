@@ -41,7 +41,7 @@ Each item in the list is showing following information:
 hs.loadSpoon("github-pull-requests")
 spoon['github-pull-requests']:setup({
   reviewer = '<yout-github-username>'
-  team_reviewer = '<org-name>/<team-name>'
+  -- team_reviewer = '<org-name>/<team-name>'
 })
 spoon['github-pull-requests']:start()
 ```

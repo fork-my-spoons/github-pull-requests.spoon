@@ -23,6 +23,7 @@ Each item in the list is showing following information:
 
 # Installation
 
+ - install [GitHub CLI](https://cli.github.com/)
  - install [Hammerspoon](http://www.hammerspoon.org/) - a powerfull automation tool for OS X
    - Manually:
 

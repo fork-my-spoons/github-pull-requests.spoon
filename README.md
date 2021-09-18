@@ -2,7 +2,7 @@
 
 <p align="center">
   <a href="https://github.com/fork-my-spoons/github-pull-requests.spoon/actions">
-    <img alt="Build" src="https://github.com/fork-my-spoons/github-pull-requests.spoon/workflows/build/badge.svg"/></a>
+    <img alt="Build" src="https://github.com/fork-my-spoons/github-pull-requests.spoon/workflows/release/badge.svg"/></a>
   <a href="https://github.com/fork-my-spoons/github-pull-requests.spoon/issues">
     <img alt="GitHub issues" src="https://img.shields.io/github/issues/fork-my-spoons/github-pull-requests.spoon"/></a>
   <a href="https://github.com/fork-my-spoons/github-pull-requests.spoon/releases">
@@ -12,13 +12,13 @@
 A menu bar app, showing a list of pull requests assigned to a user to review:
 
 <p align="center">
-  <img src="https://github.com/fork-my-spoons/github-pull-requests.spoon/raw/master/screenshots/screenshot1.png"/>
+  <img src="https://github.com/fork-my-spoons/github-pull-requests.spoon/raw/main/screenshots/screenshot1.png"/>
 </p>
 
 Each item in the list is showing following information:
 
 <p align="center">
-  <img src="https://github.com/fork-my-spoons/github-pull-requests.spoon/raw/master/screenshots/screenshot2.png"/>
+  <img src="https://github.com/fork-my-spoons/github-pull-requests.spoon/raw/main/screenshots/screenshot2.png"/>
 </p>
 
 # Installation

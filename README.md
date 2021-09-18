@@ -23,6 +23,7 @@ Each item in the list is showing following information:
 
 # Installation
 
+ - install [GitHub CLI](https://cli.github.com/)
  - install [Hammerspoon](http://www.hammerspoon.org/) - a powerfull automation tool for OS X
    - Manually:
 
@@ -39,8 +40,7 @@ Each item in the list is showing following information:
 -- github pull requests
 hs.loadSpoon("github-pull-requests")
 spoon['github-pull-requests']:setup({
-  reviewer = '<yout-github-username>'
-  team_reviewer = '<org-name>/<team-name>'
+  reviewer = 'streetturtle'
 })
 spoon['github-pull-requests']:start()
 ```

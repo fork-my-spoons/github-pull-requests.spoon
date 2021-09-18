@@ -12,6 +12,7 @@ obj.indicator = nil
 obj.iconPath = hs.spoons.resourcePath("icons")
 obj.menu = {}
 obj.task = nil
+obj.review_query = nil
 
 local calendar_icon = hs.styledtext.new(' ', { font = {name = 'feather', size = 12 }, color = {hex = '#8e8e8e'}})
 local user_icon = hs.styledtext.new(' ', { font = {name = 'feather', size = 12 }, color = {hex = '#8e8e8e'}})
@@ -69,6 +70,53 @@ local function split(s, delimiter)
     return result;
 end
 
+
+function obj:check_for_updates()
+    local release_url = 'https://api.github.com/repos/fork-my-spoons/github-pull-requests.spoon/releases/latest'
+    hs.http.asyncGet(release_url, {}, function(status, body)
+        local latest_release = hs.json.decode(body)
+        latest = latest_release.tag_name:sub(2)
+        
+        if latest == self.version then
+            hs.notify.new(function() end, {
+                autoWithdraw = false,
+                title = self.name,
+                informativeText = "You have the latest version installed!"
+            }):send()
+        else
+            hs.notify.new(function() 
+                os.execute('open ' .. latest_release.assets[1].browser_download_url)
+            end, 
+            {
+                title = self.name,
+                informativeText = "New version is available",
+                actionButtonTitle = "Download",
+                hasActionButton = true
+            }):send()
+        end
+    end)
+end
+
+
+function obj:refresh()
+    hs.task.new('/usr/local/bin/gh',
+        function(exitCode, stdout, stderr)
+            if (stderr ~= '') then
+                print(stderr)
+                show_warning(stderr)
+                return
+            end
+            self:update_indicator(stdout)
+        end,
+        {
+            'api', "-X", "GET", "search/issues",
+            "-f", "q=review-requested:" .. self.reviewer .. " is:unmerged is:open",
+            "-f", "per_page=30", 
+            "--jq", "[.items[] | {url,repository_url,title,html_url,comments,assignees,user,created_at,draft}]"
+        }):start()
+end
+
+
 function obj:update_indicator(stdout)
     self.menu = {}
 
@@ -94,20 +142,50 @@ function obj:update_indicator(stdout)
         end
 
         local submenu = {}
-
+        local is_assignee = false
         for _, assignee in pairs(pull.assignees) do
             table.insert(submenu, {
                 title = assignee.login,
                 image = hs.image.imageFromURL(assignee.avatar_url):setSize({w=36,h=36})
             })
+            if (assignee.login == self.reviewer) then 
+                is_assignee = true
+            end
         end
         
-        table.insert(submenu, {
-            title = '-'
-        })
-        table.insert(submenu, {
-            title = 'Assign to me'
-        })
+        table.insert(submenu, {title = '-'})
+
+        if (is_assignee == true) then 
+            table.insert(submenu, {
+                title = 'Unassign',
+                fn = function() hs.task.new('/usr/local/bin/gh',
+                    function(exitCode, stdout, stderr)
+                        if (stderr ~= '') then
+                            print(stderr)
+                            show_warning(stderr)
+                            return
+                        end
+                        self:refresh()
+                    end,
+                    {'pr', '--repo', string.gsub(pull.html_url, "/pull/[0-9]+", ""), 'edit', pull.html_url, '--remove-assignee', '@me'}):start()
+                end
+            })
+        else 
+            table.insert(submenu, {
+                title = 'Assign to me',
+                fn = function() hs.task.new('/usr/local/bin/gh',
+                    function(exitCode, stdout, stderr)
+                        if (stderr ~= '') then
+                            print(stderr)
+                            show_warning(stderr)
+                            return
+                        end
+                        self:refresh()
+                    end,
+                    {'pr', '--repo', string.gsub(pull.html_url, "/pull/[0-9]+", ""), 'edit', pull.html_url, '--add-assignee', '@me'}):start()
+                end
+            })
+        end
 
         table.insert(self.menu, {
             title = pull_title,
@@ -115,13 +193,25 @@ function obj:update_indicator(stdout)
             fn = function() os.execute('open ' .. pull.html_url) end,
             menu = submenu
         })
-
     end
+
+    table.insert(self.menu, { title = '-'})
+
+    table.insert(self.menu, { 
+        image = hs.image.imageFromName('NSRefreshTemplate'), 
+        title = 'Refresh', fn = function() self:refresh() end
+    })
+
+    table.insert(self.menu, { 
+        image = hs.image.imageFromName('NSTouchBarDownloadTemplate'), 
+        title = 'Check for updates', 
+        fn = function() self:check_for_updates() end})
+
 
     self.indicator:setMenu(self.menu)
 end
 
-
+    
 function obj:init()
     self.indicator = hs.menubar.new()
     self.indicator:setIcon(hs.image.imageFromPath(self.iconPath .. '/git-pull-request.png'):setSize({w=16,h=16}), true)
@@ -129,38 +219,20 @@ end
 
 
 function obj:setup(args)
-    self.repos = args.repos
-    self.reviewer = args.reviewer
-    self.team_reviewer = args.team_reviewer
+    if args.reviewer ~= nil then
+        self.reviewer = args.reviewer
+    else
+        show_warning('Required parameter reviewer is not set')
+        return
+    end
 end
 
 
 function obj:start()
-    local review_query = ''
-    if self.reviewer ~= nil then
-        review_query = 'review-requested:' .. self.reviewer
-    elseif self.team_reviewer ~= nil then
-        review_query = 'team-review-requested:' .. self.team_reviewer
-    else
-        show_warning('Required parameter reviewer or team_reviewer is not set')
-        return
-    end
 
-    print(review_query)
-    self.task = hs.task.new('/usr/local/bin/gh',
-        function(exitCode, stdout, stderr)
-            if (stderr ~= '') then
-                print(stderr)
-                show_warning(stderr)
-                return
-            end
 
-            self:update_indicator(stdout)
-        end,
-        {'api', "-X", "GET", "search/issues",
-        "-f", "q=" .. review_query .. " is:unmerged is:open",
-        "-f", "per_page=30", 
-        "--jq", "[.items[] | {url,repository_url,title,html_url,comments,assignees,user,created_at,draft}]"}):start()
+    self.timer = hs.timer.new(600, function() self:refresh() end)
+    self.timer:start():fire()
 end
 
 return obj
